@@ -60,6 +60,8 @@ type Options struct {
 	// The HTTP client used for making requests.
 	// It defaults to a shared http.Client.
 	HTTPClient ops.HTTPClient
+
+	IsInstanceDiscoveryDisabled bool
 }
 
 func (p *Options) validate() error {
@@ -97,6 +99,13 @@ func WithHTTPClient(httpClient ops.HTTPClient) Option {
 	}
 }
 
+// WithInstanceDiscovery set to false to disable authority validation (to support private cloud scenarios)
+func WithInstanceDiscovery(instanceDiscoveryEnabled bool) Option {
+	return func(o *Options) {
+		o.IsInstanceDiscoveryDisabled = !instanceDiscoveryEnabled
+	}
+}
+
 // Client is a representation of authentication client for public applications as defined in the
 // package doc. For more information, visit https://docs.microsoft.com/azure/active-directory/develop/msal-client-applications.
 type Client struct {
@@ -117,7 +126,7 @@ func New(clientID string, options ...Option) (Client, error) {
 		return Client{}, err
 	}
 
-	base, err := base.New(clientID, opts.Authority, oauth.New(opts.HTTPClient), base.WithCacheAccessor(opts.Accessor))
+	base, err := base.New(clientID, opts.Authority, oauth.New(opts.HTTPClient), base.WithCacheAccessor(opts.Accessor), base.WithInstanceDiscovery(!opts.IsInstanceDiscoveryDisabled))
 	if err != nil {
 		return Client{}, err
 	}
